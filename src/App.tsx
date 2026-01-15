@@ -72,7 +72,7 @@ function App() {
           {messages.length === 0 && !activeThreadId && (
             <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyItems: 'center', height: '100%', color: 'var(--text-muted)', textAlign: 'center', padding: '0 40px' }}>
               <div style={{ width: '100%' }}>
-                <h1 style={{ color: 'var(--text-main)' }}>Deterministic AI Gateway</h1>
+                <h1 style={{ color: 'var(--text-main)' }}>AI Gateway</h1>
                 <p>Start a new chat to begin secure, auditable execution.</p>
               </div>
             </div>
