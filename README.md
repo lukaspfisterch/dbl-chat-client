@@ -1,73 +1,40 @@
-# React + TypeScript + Vite
+# dbl-chat-client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Pure client library and UI for interacting with the [deterministic-ai-gateway](https://github.com/lukaspfisterch/deterministic-ai-gateway) chat surface.
 
-Currently, two official plugins are available:
+## Role
+This is a **pure client and projector**, never a governor.
+- All state is derived from gateway events.
+- Communications are strictly HTTP (Get capabilities, Post intent, Tail SSE).
+- Zero local policy logic or "smart" retries.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
+- Identity anchor management (`thread_id`, `turn_id`, `parent_turn_id`).
+- Intent composition for `chat.message`.
+- Real-time event projection via `/tail`.
+- Clean, minimalist "ChatGPT-style" interface.
 
-## React Compiler
+## Installation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+git clone https://github.com/lukaspfisterch/dbl-chat-client.git
+cd dbl-chat-client
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Running the Client
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Start the development server:
+```bash
+npm run dev
 ```
+
+The UI will typically run at `http://localhost:5173`. 
+
+### Configuration
+By default, the client expects the gateway at `http://127.0.0.1:8010`. You can change this in `src/App.tsx` (GATEWAY_URL).
+
+## Design Stance
+- **Boring by design**: If the gateway is slow or denies an intent, the UI reflects exactly that.
+- **Single Source of Truth**: The Gateway event stream is the only authority for what happened.
+- **Minimal State**: State is computed from the append-only event trail.
