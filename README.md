@@ -16,6 +16,14 @@ This is a **pure client and projector**, never a governor.
 
 ## Installation
 
+### PowerShell
+```powershell
+git clone https://github.com/lukaspfisterch/dbl-chat-client.git
+cd dbl-chat-client
+npm install
+```
+
+### Bash
 ```bash
 git clone https://github.com/lukaspfisterch/dbl-chat-client.git
 cd dbl-chat-client
@@ -24,6 +32,7 @@ npm install
 
 ## Running the Client
 
+### PowerShell / Bash
 Start the development server:
 ```bash
 npm run dev
