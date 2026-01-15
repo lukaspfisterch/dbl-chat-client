@@ -1,19 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-interface Model {
-    id: string;
-    display_name: string;
-}
-
 interface Props {
     onSend: (text: string) => void;
     disabled?: boolean;
-    models: Model[];
-    selectedModelId: string;
-    onModelChange: (id: string) => void;
 }
 
-export const MessageInput: React.FC<Props> = ({ onSend, disabled, models, selectedModelId, onModelChange }) => {
+export const MessageInput: React.FC<Props> = ({ onSend, disabled }) => {
     const [text, setText] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -40,20 +32,6 @@ export const MessageInput: React.FC<Props> = ({ onSend, disabled, models, select
 
     return (
         <div className="input-area-wrapper">
-            <div className="model-selector-container">
-                <select
-                    className="model-select"
-                    value={selectedModelId}
-                    onChange={(e) => onModelChange(e.target.value)}
-                    disabled={disabled || models.length === 0}
-                >
-                    {models.length === 0 && <option value="gpt-4o">gpt-4o (default)</option>}
-                    {models.map(m => (
-                        <option key={m.id} value={m.id}>{m.display_name}</option>
-                    ))}
-                </select>
-            </div>
-
             <div className="input-area">
                 <div className="input-container">
                     <textarea

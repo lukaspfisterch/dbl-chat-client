@@ -306,3 +306,8 @@ html,
   color: var(--text-muted);
   padding: 8px;
 }
+
+.status-bar.error {
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.1);
+}

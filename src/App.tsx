@@ -16,7 +16,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
         <div className={`avatar ${message.role}`}>
           {isUser ? 'U' : isSystem ? 'S' : 'AI'}
         </div>
-        <div className={`text-body ${message.status === 'denied' ? 'denied' : ''}`}>
+        <div className={`text-body ${message.status === 'observed_deny' ? 'denied' : ''} ${message.status === 'transport_error' || message.status === 'execution_error' ? 'error' : ''}`}>
           {message.content}
         </div>
       </div>
@@ -33,14 +33,12 @@ function App() {
     sendMessage,
     createNewThread,
     capabilities,
-    selectedModelId,
-    setSelectedModelId,
     deleteThread,
-    renameThread
+    renameThread,
+    projectionError
   } = useGateway(GATEWAY_URL);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const allModels = capabilities?.providers.flatMap(p => p.models) || [];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -85,14 +83,17 @@ function App() {
         <MessageInput
           onSend={handleSend}
           disabled={!capabilities}
-          models={allModels}
-          selectedModelId={selectedModelId}
-          onModelChange={setSelectedModelId}
         />
 
         {!capabilities && (
           <div className="status-bar">
             Connecting to gateway (port 8010 via proxy)...
+          </div>
+        )}
+
+        {projectionError && (
+          <div className="status-bar error">
+            {projectionError}
           </div>
         )}
       </main>
