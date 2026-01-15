@@ -2,18 +2,25 @@ export type EventKind = 'INTENT' | 'DECISION' | 'EXECUTION' | 'ADMISSION';
 
 export interface EventRecord {
     index: number;
-    timestamp: string;
     kind: EventKind;
     correlation_id: string;
     payload: any;
     thread_id?: string;
     turn_id?: string;
-    parent_turn_id?: string;
+    parent_turn_id?: string | null;
+    intent_type?: string;
+    timestamp?: string; // May be undefined in some versions
 }
 
 export interface Capabilities {
     interface_version: number;
-    providers: Array<{ id: string; provider: string }>;
+    providers: Array<{
+        id: string;
+        models: Array<{
+            id: string;
+            display_name: string;
+        }>;
+    }>;
     surfaces: Record<string, boolean>;
 }
 

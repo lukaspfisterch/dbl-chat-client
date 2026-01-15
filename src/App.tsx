@@ -4,14 +4,14 @@ import { Sidebar } from './components/Sidebar';
 import { MessageInput } from './components/MessageInput';
 import type { ChatMessage } from './types/gateway';
 
-const GATEWAY_URL = 'http://127.0.0.1:8010';
+const GATEWAY_URL = '';
 
 const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
   return (
-    <div className="message-wrapper">
+    <div className={`message-wrapper ${message.role}`}>
       <div className="message-content">
         <div className={`avatar ${message.role}`}>
           {isUser ? 'U' : isSystem ? 'S' : 'AI'}
@@ -32,10 +32,15 @@ function App() {
     setActiveThreadId,
     sendMessage,
     createNewThread,
-    capabilities
+    capabilities,
+    selectedModelId,
+    setSelectedModelId,
+    deleteThread,
+    renameThread
   } = useGateway(GATEWAY_URL);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const allModels = capabilities?.providers.flatMap(p => p.models) || [];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -58,6 +63,8 @@ function App() {
         activeThreadId={activeThreadId}
         onSelect={setActiveThreadId}
         onNewChat={() => createNewThread()}
+        onRename={renameThread}
+        onDelete={deleteThread}
       />
 
       <main className="main-view">
@@ -75,11 +82,17 @@ function App() {
           ))}
         </div>
 
-        <MessageInput onSend={handleSend} disabled={!capabilities} />
+        <MessageInput
+          onSend={handleSend}
+          disabled={!capabilities}
+          models={allModels}
+          selectedModelId={selectedModelId}
+          onModelChange={setSelectedModelId}
+        />
 
         {!capabilities && (
           <div className="status-bar">
-            Connecting to gateway at {GATEWAY_URL}...
+            Connecting to gateway (port 8010 via proxy)...
           </div>
         )}
       </main>

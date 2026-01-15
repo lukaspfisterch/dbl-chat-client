@@ -23,10 +23,10 @@ export class GatewayClient {
     }
 
     async *tail(since?: number): AsyncIterableIterator<EventRecord> {
-        const url = new URL(`${this.baseUrl}/tail`);
-        if (since !== undefined) url.searchParams.set('since', since.toString());
+        const query = since !== undefined ? `?since=${since}` : '';
+        const url = `${this.baseUrl}/tail${query}`;
 
-        const response = await fetch(url.toString());
+        const response = await fetch(url);
         if (!response.ok) throw new Error('Tail stream failed');
         if (!response.body) return;
 
@@ -56,11 +56,9 @@ export class GatewayClient {
     }
 
     async getSnapshot(offset = 0, limit = 100): Promise<{ events: EventRecord[], length: number }> {
-        const url = new URL(`${this.baseUrl}/snapshot`);
-        url.searchParams.set('offset', offset.toString());
-        url.searchParams.set('limit', limit.toString());
+        const url = `${this.baseUrl}/snapshot?offset=${offset}&limit=${limit}`;
 
-        const resp = await fetch(url.toString());
+        const resp = await fetch(url);
         if (!resp.ok) throw new Error('Snapshot failed');
         return resp.json();
     }
