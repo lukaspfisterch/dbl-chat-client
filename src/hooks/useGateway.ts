@@ -30,11 +30,24 @@ export function useGateway(baseUrl: string) {
         localStorage.setItem('dbl_hidden_threads', JSON.stringify(hiddenThreads));
     }, [hiddenThreads]);
 
+    const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+    const hasInitializedModel = useRef(false);
+
     useEffect(() => {
         clientRef.current.getCapabilities()
             .then(caps => setCapabilities(caps))
             .catch(err => console.error("Capabilities fetch failed", err));
     }, []);
+
+    useEffect(() => {
+        if (capabilities && !hasInitializedModel.current && capabilities.providers.length > 0) {
+            const firstModel = capabilities.providers[0].models[0]?.id;
+            if (firstModel) {
+                setSelectedModelId(firstModel);
+                hasInitializedModel.current = true;
+            }
+        }
+    }, [capabilities]);
 
     const processEvent = useCallback((event: EventRecord) => {
         try {
@@ -169,7 +182,7 @@ export function useGateway(baseUrl: string) {
         let active = true;
         (async () => {
             try {
-                const snap = await clientRef.current.getSnapshot(0, 5000);
+                const snap = await clientRef.current.getSnapshot(0, 2000);
                 snap.events.forEach(processEvent);
             } catch (e) {
                 console.error("Snapshot failure", e);
@@ -189,8 +202,8 @@ export function useGateway(baseUrl: string) {
         return () => { active = false; };
     }, [processEvent]);
 
-    const sendMessage = async (threadId: string, text: string) => {
-        if (!capabilities) return;
+    const sendMessage = useCallback(async (threadId: string, text: string) => {
+        if (!capabilities || !selectedModelId) return;
 
         if (hiddenThreads.includes(threadId)) {
             setHiddenThreads(prev => prev.filter(id => id !== threadId));
@@ -201,8 +214,6 @@ export function useGateway(baseUrl: string) {
         const threadMsgs = messages[threadId] || [];
         const parent = threadMsgs.length > 0 ? threadMsgs[threadMsgs.length - 1].turn_id : null;
         const timestamp = new Date().toISOString();
-
-        const requested_model_id = capabilities.providers.flatMap(p => p.models)[0]?.id || 'gpt-4o';
 
         setMessages(prev => ({
             ...prev,
@@ -220,6 +231,9 @@ export function useGateway(baseUrl: string) {
         const envelope: IntentEnvelope = {
             interface_version: 2,
             correlation_id: correlationId,
+            thread_id: threadId,
+            turn_id: turnId,
+            kind: 'INTENT',
             payload: {
                 stream_id: 'default',
                 lane: 'user',
@@ -228,11 +242,18 @@ export function useGateway(baseUrl: string) {
                 thread_id: threadId,
                 turn_id: turnId,
                 parent_turn_id: parent,
-                payload: { message: text },
-                inputs: { principal_id: 'browser-user' },
-                requested_model_id
+                payload: {
+                    message: text,
+                    requested_model_id: selectedModelId
+                },
+                requested_model_id: selectedModelId,
+                inputs: { principal_id: 'browser-user' }
             }
         };
+
+        console.log('[DEBUG] Submitting INTENT');
+        console.log('[DEBUG] selectedModelId:', selectedModelId);
+        console.log('[DEBUG] Envelope:', JSON.stringify(envelope, null, 2));
 
         try {
             await clientRef.current.postIntent(envelope);
@@ -242,7 +263,7 @@ export function useGateway(baseUrl: string) {
                 [threadId]: (prev[threadId] || []).map(m => m.id === turnId ? { ...m, status: 'transport_error' } : m)
             }));
         }
-    };
+    }, [capabilities, selectedModelId, messages, hiddenThreads]);
 
     const createNewThread = () => {
         const id = uuidv4();
@@ -269,6 +290,8 @@ export function useGateway(baseUrl: string) {
         deleteThread,
         renameThread,
         projectionError,
+        selectedModelId,
+        setSelectedModelId,
         threads: Object.keys(messages)
             .filter(id => !hiddenThreads.includes(id))
             .map(id => {

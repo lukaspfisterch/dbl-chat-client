@@ -35,7 +35,9 @@ function App() {
     capabilities,
     deleteThread,
     renameThread,
-    projectionError
+    projectionError,
+    selectedModelId,
+    setSelectedModelId
   } = useGateway(GATEWAY_URL);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -83,6 +85,9 @@ function App() {
         <MessageInput
           onSend={handleSend}
           disabled={!capabilities}
+          capabilities={capabilities}
+          selectedModelId={selectedModelId}
+          onModelSelect={setSelectedModelId}
         />
 
         {!capabilities && (

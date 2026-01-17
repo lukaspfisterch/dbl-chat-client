@@ -229,23 +229,43 @@ html,
 .model-selector-container {
   max-width: 800px;
   width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 4px;
 }
 
-.model-select {
+.model-selector {
   background: var(--bg-sidebar);
   border: 1px solid var(--border-color);
   color: var(--text-muted);
-  font-size: 0.75rem;
-  padding: 4px 12px;
+  font-size: 0.7rem;
+  padding: 3px 10px;
   border-radius: 6px;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  appearance: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.model-select:hover {
+.model-selector:hover {
   border-color: var(--accent);
   color: var(--text-main);
+  background: var(--bg-message-ai);
+}
+
+.model-selector optgroup {
+  background: var(--bg-sidebar);
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.model-selector option {
+  background: var(--bg-sidebar);
+  color: var(--text-main);
+  text-transform: none;
 }
 
 .input-area {

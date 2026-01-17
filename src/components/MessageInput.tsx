@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
+import type { Capabilities } from '../types/gateway';
 
 interface Props {
     onSend: (text: string) => void;
     disabled?: boolean;
+    capabilities: Capabilities | null;
+    selectedModelId: string | null;
+    onModelSelect: (id: string) => void;
 }
 
-export const MessageInput: React.FC<Props> = ({ onSend, disabled }) => {
+export const MessageInput: React.FC<Props> = ({ onSend, disabled, capabilities, selectedModelId, onModelSelect }) => {
     const [text, setText] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -33,6 +37,25 @@ export const MessageInput: React.FC<Props> = ({ onSend, disabled }) => {
     return (
         <div className="input-area-wrapper">
             <div className="input-area">
+                <div className="model-selector-container">
+                    <select
+                        className="model-selector"
+                        value={selectedModelId || ''}
+                        onChange={(e) => onModelSelect(e.target.value)}
+                        disabled={disabled || !capabilities}
+                    >
+                        {!capabilities && <option>Loading models...</option>}
+                        {capabilities?.providers.map(provider => (
+                            <optgroup key={provider.id} label={provider.id.toUpperCase()}>
+                                {provider.models.map(model => (
+                                    <option key={model.id} value={model.id}>
+                                        {model.display_name}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        ))}
+                    </select>
+                </div>
                 <div className="input-container">
                     <textarea
                         ref={textareaRef}

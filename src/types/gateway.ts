@@ -65,6 +65,9 @@ export interface Capabilities {
 export interface IntentEnvelope {
     interface_version: number;
     correlation_id: string;
+    thread_id: string;
+    turn_id: string;
+    kind: 'INTENT';
     payload: {
         stream_id: string;
         lane: string;
@@ -75,9 +78,10 @@ export interface IntentEnvelope {
         parent_turn_id?: string | null;
         payload: {
             message: string;
+            requested_model_id: string;
         };
-        inputs: Record<string, any>;
         requested_model_id: string;
+        inputs: Record<string, any>;
     };
 }
 

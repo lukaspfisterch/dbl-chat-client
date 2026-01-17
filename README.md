@@ -1,4 +1,4 @@
-# dbl-chat-client
+# dbl-chat-client (v0.2.0)
 
 Pure client library and UI for interacting with the [deterministic-ai-gateway](https://github.com/lukaspfisterch/deterministic-ai-gateway) chat surface.
 
@@ -47,3 +47,12 @@ By default, the client expects the gateway at `http://127.0.0.1:8010`. You can c
 - **Boring by design**: If the gateway is slow or denies an intent, the UI reflects exactly that.
 - **Single Source of Truth**: The Gateway event stream is the only authority for what happened.
 - **Minimal State**: State is computed from the append-only event trail.
+
+## Development & Validation
+
+### Live Contract Smoke Test
+To validate the current UI code against a running gateway:
+```bash
+node scripts/smoke-test.js
+```
+This script verifies that the client matches the authoritative `INTENT` wire contract.
