@@ -21,7 +21,6 @@ export default defineConfig({
       '/tail': {
         target: 'http://127.0.0.1:8010',
         changeOrigin: true,
-        sse: true,
       }
     }
   }

@@ -1,4 +1,11 @@
 import type { Capabilities, IntentEnvelope, EventRecord } from '../types/gateway';
+import { REQUIRED_SURFACES, REQUIRED_INTERFACE_VERSION } from '../types/gateway';
+
+export interface AdmissionError {
+    type: 'interface_mismatch' | 'missing_surfaces' | 'network_error';
+    message: string;
+    details?: string[];
+}
 
 export class GatewayClient {
     private baseUrl: string;
@@ -11,6 +18,47 @@ export class GatewayClient {
         const resp = await fetch(`${this.baseUrl}/capabilities`);
         if (!resp.ok) throw new Error('Failed to fetch capabilities');
         return resp.json();
+    }
+
+    /**
+     * Admission Gate: Verify gateway compatibility before allowing operations.
+     * Returns null if admission passes, or AdmissionError if incompatible.
+     */
+    async checkAdmission(): Promise<AdmissionError | null> {
+        try {
+            const caps = await this.getCapabilities();
+
+            // Check interface version
+            if (caps.interface_version !== REQUIRED_INTERFACE_VERSION) {
+                return {
+                    type: 'interface_mismatch',
+                    message: `Gateway interface version mismatch. Expected ${REQUIRED_INTERFACE_VERSION}, got ${caps.interface_version}`,
+                };
+            }
+
+            // Check required surfaces
+            const enabledSurfaces = new Set(
+                Object.entries(caps.surfaces)
+                    .filter(([, enabled]) => enabled)
+                    .map(([name]) => name)
+            );
+            const missingSurfaces = REQUIRED_SURFACES.filter(s => !enabledSurfaces.has(s));
+
+            if (missingSurfaces.length > 0) {
+                return {
+                    type: 'missing_surfaces',
+                    message: `Gateway missing required surfaces: ${missingSurfaces.join(', ')}`,
+                    details: missingSurfaces,
+                };
+            }
+
+            return null; // Admission passed
+        } catch (e) {
+            return {
+                type: 'network_error',
+                message: e instanceof Error ? e.message : 'Failed to connect to gateway',
+            };
+        }
     }
 
     async postIntent(envelope: IntentEnvelope): Promise<void> {
@@ -63,3 +111,4 @@ export class GatewayClient {
         return resp.json();
     }
 }
+

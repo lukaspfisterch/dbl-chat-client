@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GatewayClient } from '../api/gateway';
-import type { EventRecord, ChatMessage, Capabilities, IntentEnvelope, IntentEvent, ExecutionEvent, DecisionEvent } from '../types/gateway';
+import type { AdmissionError } from '../api/gateway';
+import type { EventRecord, ChatMessage, Capabilities, IntentEnvelope, IntentEvent, ExecutionEvent, DecisionEvent, ConnectionState, DeclaredRef } from '../types/gateway';
 import { v4 as uuidv4 } from 'uuid';
 
 export function useGateway(baseUrl: string) {
@@ -33,10 +34,42 @@ export function useGateway(baseUrl: string) {
     const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
     const hasInitializedModel = useRef(false);
 
+    // Admission Gate state
+    const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
+    const [admissionError, setAdmissionError] = useState<AdmissionError | null>(null);
+
+    // Admission Gate: Check capabilities and compatibility on mount
     useEffect(() => {
-        clientRef.current.getCapabilities()
-            .then(caps => setCapabilities(caps))
-            .catch(err => console.error("Capabilities fetch failed", err));
+        let cancelled = false;
+        (async () => {
+            setConnectionState('connecting');
+            const error = await clientRef.current.checkAdmission();
+            if (cancelled) return;
+
+            if (error) {
+                setAdmissionError(error);
+                setConnectionState('error');
+                console.error('Admission Gate failed:', error.message);
+                return;
+            }
+
+            // Admission passed, fetch full capabilities
+            setConnectionState('checking_capabilities');
+            try {
+                const caps = await clientRef.current.getCapabilities();
+                if (cancelled) return;
+                setCapabilities(caps);
+                setConnectionState('connected');
+            } catch (err) {
+                if (cancelled) return;
+                setAdmissionError({
+                    type: 'network_error',
+                    message: err instanceof Error ? err.message : 'Failed to fetch capabilities',
+                });
+                setConnectionState('error');
+            }
+        })();
+        return () => { cancelled = true; };
     }, []);
 
     useEffect(() => {
@@ -202,7 +235,16 @@ export function useGateway(baseUrl: string) {
         return () => { active = false; };
     }, [processEvent]);
 
-    const sendMessage = useCallback(async (threadId: string, text: string) => {
+    const sendMessage = useCallback(async (
+        threadId: string,
+        text: string,
+        contextRefs?: DeclaredRef[]
+    ) => {
+        // Admission Gate: Block if not connected
+        if (connectionState !== 'connected') {
+            console.warn('Cannot send message: Gateway not connected');
+            return;
+        }
         if (!capabilities || !selectedModelId) return;
 
         if (hiddenThreads.includes(threadId)) {
@@ -247,13 +289,19 @@ export function useGateway(baseUrl: string) {
                     requested_model_id: selectedModelId
                 },
                 requested_model_id: selectedModelId,
-                inputs: { principal_id: 'browser-user' }
+                inputs: {
+                    principal_id: 'browser-user',
+                    capability: 'chat',
+                    model_id: selectedModelId,
+                },
+                // Include declared_refs if provided (for context building)
+                ...(contextRefs && contextRefs.length > 0 ? { declared_refs: contextRefs } : {})
             }
         };
 
         console.log('[DEBUG] Submitting INTENT');
         console.log('[DEBUG] selectedModelId:', selectedModelId);
-        console.log('[DEBUG] Envelope:', JSON.stringify(envelope, null, 2));
+        console.log('[DEBUG] declared_refs:', contextRefs || 'none');
 
         try {
             await clientRef.current.postIntent(envelope);
@@ -263,7 +311,7 @@ export function useGateway(baseUrl: string) {
                 [threadId]: (prev[threadId] || []).map(m => m.id === turnId ? { ...m, status: 'transport_error' } : m)
             }));
         }
-    }, [capabilities, selectedModelId, messages, hiddenThreads]);
+    }, [connectionState, capabilities, selectedModelId, messages, hiddenThreads]);
 
     const createNewThread = () => {
         const id = uuidv4();
@@ -281,6 +329,10 @@ export function useGateway(baseUrl: string) {
     };
 
     return {
+        // Connection state (Admission Gate)
+        connectionState,
+        admissionError,
+        // Capabilities
         capabilities,
         messages: activeThreadId ? (messages[activeThreadId] || []) : [],
         activeThreadId,

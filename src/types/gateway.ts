@@ -35,11 +35,19 @@ export interface ExecutionEvent extends BaseEvent {
     };
 }
 
+// Boundary block for DECISION events (v0.4.0+)
+export interface DecisionBoundary {
+    context_config_digest?: string;
+}
+
 export interface DecisionEvent extends BaseEvent {
     kind: 'DECISION';
     payload: {
         decision: 'ALLOW' | 'DENY';
         reason?: string;
+        reason_codes?: string[];
+        context_digest?: string;
+        boundary?: DecisionBoundary;
     };
 }
 
@@ -49,6 +57,13 @@ export interface UnknownEvent extends BaseEvent {
 }
 
 export type EventRecord = IntentEvent | ExecutionEvent | DecisionEvent | UnknownEvent;
+
+// Declared reference for context building
+export interface DeclaredRef {
+    ref_type: 'event' | 'turn' | 'digest';
+    ref_id: string;
+    version?: string | null;
+}
 
 export interface Capabilities {
     interface_version: number;
@@ -61,6 +76,18 @@ export interface Capabilities {
     }>;
     surfaces: Record<string, boolean>;
 }
+
+// Required surfaces for chat client to function
+export const REQUIRED_SURFACES = ['snapshot', 'ingress_intent', 'tail'] as const;
+export const REQUIRED_INTERFACE_VERSION = 2;
+
+// Connection state for admission gate
+export type ConnectionState =
+    | 'disconnected'
+    | 'connecting'
+    | 'checking_capabilities'
+    | 'connected'
+    | 'error';
 
 export interface IntentEnvelope {
     interface_version: number;
@@ -81,7 +108,8 @@ export interface IntentEnvelope {
             requested_model_id: string;
         };
         requested_model_id: string;
-        inputs: Record<string, any>;
+        inputs: Record<string, string | number | boolean | null>;
+        declared_refs?: DeclaredRef[];
     };
 }
 
@@ -100,4 +128,9 @@ export interface ChatMessage {
     turn_id: string;
     correlation_id: string;
     status: MessageStatus;
+    // Decision metadata (for DECISION events)
+    decision_digest?: string;
+    context_digest?: string;
+    reason_codes?: string[];
 }
+
