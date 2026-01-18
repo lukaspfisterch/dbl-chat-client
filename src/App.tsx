@@ -85,7 +85,10 @@ function App() {
   } = useGateway(GATEWAY_URL);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [includeContext, setIncludeContext] = useState(false);
+  // Context is ON by default
+  const [includeContext, setIncludeContext] = useState(true);
+  // Default N = 10, range 1-20
+  const [contextN, setContextN] = useState(10);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -100,20 +103,39 @@ function App() {
       threadId = createNewThread();
     }
 
-    // Build declared_refs if context checkbox is checked
-    // We need to reference the LAST COMPLETED turn (one with an assistant response)
-    // Not the current turn we're about to send
+    // Build declared_refs based on context settings
+    // Include: first message + last N assistant messages (completed turns)
     let contextRefs: DeclaredRef[] | undefined;
     if (includeContext && messages.length > 0) {
-      // Find the last assistant message - that represents a completed turn with EXECUTION
-      const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
-      if (lastAssistantMessage) {
-        // Use correlation_id for stable reference resolution
-        contextRefs = [{
+      const refs: DeclaredRef[] = [];
+
+      // Get all assistant messages (completed turns with EXECUTION)
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+
+      if (assistantMessages.length > 0) {
+        // Always include first completed turn
+        const firstAssistant = assistantMessages[0];
+        refs.push({
           ref_type: 'event',
-          ref_id: lastAssistantMessage.correlation_id,
-        }];
-        console.log('[DEBUG] Context ref:', lastAssistantMessage.correlation_id, 'from turn:', lastAssistantMessage.turn_id);
+          ref_id: firstAssistant.correlation_id,
+        });
+
+        // Include last N (excluding first if already included)
+        const lastN = assistantMessages.slice(-contextN);
+        for (const msg of lastN) {
+          // Avoid duplicate if first === one of last N
+          if (msg.correlation_id !== firstAssistant.correlation_id) {
+            refs.push({
+              ref_type: 'event',
+              ref_id: msg.correlation_id,
+            });
+          }
+        }
+      }
+
+      if (refs.length > 0) {
+        contextRefs = refs;
+        console.log('[DEBUG] Context refs:', refs.length, 'messages');
       }
     }
 
@@ -122,6 +144,7 @@ function App() {
 
   const selectedMessage = messages.find(m => m.id === selectedMessageId);
   const isConnected = connectionState === 'connected';
+  const hasCompletedTurns = messages.some(m => m.role === 'assistant');
 
   return (
     <div className="app-container">
@@ -171,20 +194,35 @@ function App() {
           />
         )}
 
-        {/* Context and Input */}
+        {/* Context Controls and Input */}
         <div className="input-area">
           <div className="context-options">
-            <label className={`context-checkbox ${messages.length === 0 ? 'no-context' : ''}`}>
+            <label className={`context-checkbox ${!hasCompletedTurns ? 'no-context' : ''}`}>
               <input
                 type="checkbox"
                 checked={includeContext}
                 onChange={(e) => setIncludeContext(e.target.checked)}
               />
               <span>
-                Include previous turn as context
-                {messages.length === 0 && ' (no turns yet)'}
+                Include context
+                {!hasCompletedTurns && ' (no completed turns yet)'}
               </span>
             </label>
+            {includeContext && (
+              <div className="context-n-control">
+                <label>
+                  Last N:
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={contextN}
+                    onChange={(e) => setContextN(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                    className="context-n-input"
+                  />
+                </label>
+              </div>
+            )}
           </div>
           <MessageInput
             onSend={handleSend}
