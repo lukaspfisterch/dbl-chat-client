@@ -238,7 +238,11 @@ export function useGateway(baseUrl: string) {
     const sendMessage = useCallback(async (
         threadId: string,
         text: string,
-        contextRefs?: DeclaredRef[]
+        options?: {
+            declaredRefs?: DeclaredRef[],
+            contextMode?: string,
+            contextN?: number
+        }
     ) => {
         // Admission Gate: Block if not connected
         if (connectionState !== 'connected') {
@@ -294,14 +298,18 @@ export function useGateway(baseUrl: string) {
                     capability: 'chat',
                     model_id: selectedModelId,
                 },
-                // Include declared_refs if provided (for context building)
-                ...(contextRefs && contextRefs.length > 0 ? { declared_refs: contextRefs } : {})
+                // Include declared_refs if provided
+                ...(options?.declaredRefs && options.declaredRefs.length > 0 ? { declared_refs: options.declaredRefs } : {}),
+                // Include declarative context
+                ...(options?.contextMode ? { context_mode: options.contextMode } : {}),
+                ...(options?.contextN ? { context_n: options.contextN } : {})
             }
         };
 
         console.log('[DEBUG] Submitting INTENT');
         console.log('[DEBUG] selectedModelId:', selectedModelId);
-        console.log('[DEBUG] declared_refs:', contextRefs || 'none');
+        console.log('[DEBUG] context_mode:', options?.contextMode || 'none');
+
 
         try {
             await clientRef.current.postIntent(envelope);

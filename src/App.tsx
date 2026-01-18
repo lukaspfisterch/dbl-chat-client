@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useGateway } from './hooks/useGateway';
 import { Sidebar } from './components/Sidebar';
 import { MessageInput } from './components/MessageInput';
-import type { ChatMessage, DeclaredRef } from './types/gateway';
+import type { ChatMessage } from './types/gateway';
 
 const GATEWAY_URL = '';
 
@@ -103,43 +103,15 @@ function App() {
       threadId = createNewThread();
     }
 
-    // Build declared_refs based on context settings
-    // Include: first message + last N assistant messages (completed turns)
-    let contextRefs: DeclaredRef[] | undefined;
-    if (includeContext && messages.length > 0) {
-      const refs: DeclaredRef[] = [];
+    // Build declarative context options
+    const contextOptions = includeContext ? {
+      contextMode: 'first_plus_last_n',
+      contextN: contextN
+    } : {
+      contextMode: 'none'
+    };
 
-      // Get all assistant messages (completed turns with EXECUTION)
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
-
-      if (assistantMessages.length > 0) {
-        // Always include first completed turn
-        const firstAssistant = assistantMessages[0];
-        refs.push({
-          ref_type: 'event',
-          ref_id: firstAssistant.correlation_id,
-        });
-
-        // Include last N (excluding first if already included)
-        const lastN = assistantMessages.slice(-contextN);
-        for (const msg of lastN) {
-          // Avoid duplicate if first === one of last N
-          if (msg.correlation_id !== firstAssistant.correlation_id) {
-            refs.push({
-              ref_type: 'event',
-              ref_id: msg.correlation_id,
-            });
-          }
-        }
-      }
-
-      if (refs.length > 0) {
-        contextRefs = refs;
-        console.log('[DEBUG] Context refs:', refs.length, 'messages');
-      }
-    }
-
-    sendMessage(threadId, text, contextRefs).catch(console.error);
+    sendMessage(threadId, text, contextOptions).catch(console.error);
   };
 
   const selectedMessage = messages.find(m => m.id === selectedMessageId);

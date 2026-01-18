@@ -110,6 +110,8 @@ export interface IntentEnvelope {
         requested_model_id: string;
         inputs: Record<string, string | number | boolean | null>;
         declared_refs?: DeclaredRef[];
+        context_mode?: string;
+        context_n?: number;
     };
 }
 
