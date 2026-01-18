@@ -1,6 +1,6 @@
 # dbl-chat-client (v0.4.0)
 
-Pure client library and UI for interacting with the [deterministic-ai-gateway](https://github.com/lukaspfisterch/deterministic-ai-gateway) chat surface.
+Pure client library and UI for interacting with the [dbl-gateway](https://github.com/lukaspfisterch/dbl-gateway) chat surface.
 
 ## Role
 This is a **pure client and projector**, never a governor.
