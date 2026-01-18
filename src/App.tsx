@@ -7,46 +7,73 @@ import type { ChatMessage } from './types/gateway';
 const GATEWAY_URL = '';
 
 // Turn Details Panel (Operator Mode)
-const TurnDetails: React.FC<{ message: ChatMessage; onClose: () => void }> = ({ message, onClose }) => (
-  <div className="turn-details-panel">
-    <div className="turn-details-header">
-      <span>Turn Details</span>
-      <button onClick={onClose} className="close-btn">×</button>
+const TurnDetails: React.FC<{ message: ChatMessage; onClose: () => void }> = ({ message, onClose }) => {
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).catch(console.error);
+  };
+
+  return (
+    <div className="turn-details-panel">
+      <div className="turn-details-header">
+        <span>Turn Details</span>
+        <button onClick={onClose} className="close-btn">×</button>
+      </div>
+      <div className="turn-details-content">
+        <div className="detail-row">
+          <span className="detail-label">turn_id</span>
+          <code className="detail-value">{message.turn_id}</code>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">correlation_id</span>
+          <code className="detail-value">{message.correlation_id}</code>
+        </div>
+        <div className="detail-row">
+          <span className="detail-label">status</span>
+          <code className={`detail-value status-${message.status}`}>{message.status}</code>
+        </div>
+        {message.context_digest && (
+          <div className="detail-row digest-row">
+            <span className="detail-label">context_digest</span>
+            <code className="detail-value digest" title={message.context_digest}>
+              {message.context_digest.substring(0, 16)}...
+            </code>
+            <button
+              className="copy-btn"
+              onClick={() => copyToClipboard(message.context_digest!)}
+              title="Copy full digest"
+            >
+              📋
+            </button>
+          </div>
+        )}
+        {message.decision_digest && (
+          <div className="detail-row digest-row">
+            <span className="detail-label">
+              🔒 decision_digest
+            </span>
+            <code className="detail-value digest authoritative" title={message.decision_digest}>
+              {message.decision_digest.substring(0, 16)}...
+            </code>
+            <button
+              className="copy-btn"
+              onClick={() => copyToClipboard(message.decision_digest!)}
+              title="Copy full digest"
+            >
+              📋
+            </button>
+          </div>
+        )}
+        {message.reason_codes && message.reason_codes.length > 0 && (
+          <div className="detail-row">
+            <span className="detail-label">reason_codes</span>
+            <code className="detail-value">{message.reason_codes.join(', ')}</code>
+          </div>
+        )}
+      </div>
     </div>
-    <div className="turn-details-content">
-      <div className="detail-row">
-        <span className="detail-label">turn_id</span>
-        <code className="detail-value">{message.turn_id}</code>
-      </div>
-      <div className="detail-row">
-        <span className="detail-label">correlation_id</span>
-        <code className="detail-value">{message.correlation_id}</code>
-      </div>
-      <div className="detail-row">
-        <span className="detail-label">status</span>
-        <code className={`detail-value status-${message.status}`}>{message.status}</code>
-      </div>
-      {message.context_digest && (
-        <div className="detail-row">
-          <span className="detail-label">context_digest</span>
-          <code className="detail-value digest">{message.context_digest.substring(0, 24)}...</code>
-        </div>
-      )}
-      {message.decision_digest && (
-        <div className="detail-row">
-          <span className="detail-label">decision_digest</span>
-          <code className="detail-value digest">{message.decision_digest.substring(0, 24)}...</code>
-        </div>
-      )}
-      {message.reason_codes && message.reason_codes.length > 0 && (
-        <div className="detail-row">
-          <span className="detail-label">reason_codes</span>
-          <code className="detail-value">{message.reason_codes.join(', ')}</code>
-        </div>
-      )}
-    </div>
-  </div>
-);
+  );
+};
+
 
 const MessageBubble: React.FC<{ message: ChatMessage; onShowDetails: () => void }> = ({ message, onShowDetails }) => {
   const isUser = message.role === 'user';
@@ -80,7 +107,7 @@ function App() {
     projectionError,
     selectedModelId,
     setSelectedModelId,
-    connectionState,
+    semanticState,
     admissionError
   } = useGateway(GATEWAY_URL);
 
@@ -115,7 +142,7 @@ function App() {
   };
 
   const selectedMessage = messages.find(m => m.id === selectedMessageId);
-  const isConnected = connectionState === 'connected';
+  const isConnected = semanticState === 'ready' || semanticState === 'degraded';
   const hasCompletedTurns = messages.some(m => m.role === 'assistant');
 
   return (
@@ -130,13 +157,14 @@ function App() {
       />
 
       <main className="main-view">
-        {/* Connection Status Bar */}
-        {connectionState !== 'connected' && (
-          <div className={`connection-bar ${connectionState}`}>
-            {connectionState === 'connecting' && '🔄 Connecting to gateway...'}
-            {connectionState === 'checking_capabilities' && '🔍 Checking capabilities...'}
-            {connectionState === 'error' && `❌ ${admissionError?.message || 'Connection failed'}`}
-            {connectionState === 'disconnected' && '⚪ Disconnected'}
+        {/* Semantic Connection Status Bar */}
+        {semanticState !== 'ready' && (
+          <div className={`connection-bar ${semanticState}`}>
+            {semanticState === 'connecting' && '⚪ Connecting...'}
+            {semanticState === 'degraded' && '🟡 Some providers unavailable'}
+            {semanticState === 'unavailable' && '🔴 No models available — check gateway configuration'}
+            {semanticState === 'error' && `❌ Gateway unreachable: ${admissionError?.message || 'Connection failed'}`}
+            {semanticState === 'disconnected' && '⚪ Disconnected'}
           </div>
         )}
 
@@ -169,21 +197,22 @@ function App() {
         {/* Context Controls and Input */}
         <div className="input-area">
           <div className="context-options">
-            <label className={`context-checkbox ${!hasCompletedTurns ? 'no-context' : ''}`}>
+            <label
+              className={`context-checkbox ${!hasCompletedTurns ? 'disabled' : ''}`}
+              title="Include prior turns as deterministic context (first + last N)"
+            >
               <input
                 type="checkbox"
                 checked={includeContext}
                 onChange={(e) => setIncludeContext(e.target.checked)}
+                disabled={!hasCompletedTurns}
               />
-              <span>
-                Include context
-                {!hasCompletedTurns && ' (no completed turns yet)'}
-              </span>
+              <span>Use conversation history</span>
             </label>
-            {includeContext && (
+            {includeContext && hasCompletedTurns && (
               <div className="context-n-control">
-                <label>
-                  Last N:
+                <label title="Number of recent turns to include as context">
+                  History depth:
                   <input
                     type="number"
                     min={1}

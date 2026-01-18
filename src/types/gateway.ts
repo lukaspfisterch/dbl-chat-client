@@ -72,10 +72,15 @@ export interface Capabilities {
         models: Array<{
             id: string;
             display_name: string;
+            health?: {
+                status: 'ok' | 'unhealthy' | 'unknown';
+                checked_at?: string;
+            };
         }>;
     }>;
     surfaces: Record<string, boolean>;
 }
+
 
 // Required surfaces for chat client to function
 export const REQUIRED_SURFACES = ['snapshot', 'ingress_intent', 'tail'] as const;
@@ -87,6 +92,15 @@ export type ConnectionState =
     | 'connecting'
     | 'checking_capabilities'
     | 'connected'
+    | 'error';
+
+// Semantic connection state (derived, user-facing)
+export type SemanticConnectionState =
+    | 'ready'       // connected + capabilities + ≥1 healthy model
+    | 'degraded'    // connected, but some providers unhealthy
+    | 'unavailable' // no providers or no policy (observer mode)
+    | 'connecting'
+    | 'disconnected'
     | 'error';
 
 export interface IntentEnvelope {

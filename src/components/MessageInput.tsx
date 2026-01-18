@@ -34,29 +34,44 @@ export const MessageInput: React.FC<Props> = ({ onSend, disabled, capabilities, 
         }
     }, [text]);
 
+    // Get health indicator for a model
+    const healthIndicator = (status?: string) => {
+        if (!status || status === 'ok') return '●';
+        return '○';
+    };
+
+    // Check if model is healthy
+    const isModelHealthy = (health?: { status: string }) => {
+        return !health || health.status === 'ok';
+    };
+
     return (
         <div className="input-area-wrapper">
             <div className="input-area">
-                <div className="model-selector-container">
+                <div className="input-container">
+                    {/* Model Selector - compact pill inside input */}
                     <select
-                        className="model-selector"
+                        className="model-pill"
                         value={selectedModelId || ''}
                         onChange={(e) => onModelSelect(e.target.value)}
                         disabled={disabled || !capabilities}
+                        title="Select model"
                     >
-                        {!capabilities && <option>Loading models...</option>}
+                        {!capabilities && <option>...</option>}
                         {capabilities?.providers.map(provider => (
                             <optgroup key={provider.id} label={provider.id.toUpperCase()}>
                                 {provider.models.map(model => (
-                                    <option key={model.id} value={model.id}>
-                                        {model.display_name}
+                                    <option
+                                        key={model.id}
+                                        value={model.id}
+                                        disabled={!isModelHealthy(model.health)}
+                                    >
+                                        {healthIndicator(model.health?.status)} {model.display_name}
                                     </option>
                                 ))}
                             </optgroup>
                         ))}
                     </select>
-                </div>
-                <div className="input-container">
                     <textarea
                         ref={textareaRef}
                         rows={1}

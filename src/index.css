@@ -277,19 +277,67 @@ html,
 .input-container {
   max-width: 800px;
   width: 100%;
-  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
   background: var(--bg-sidebar);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  padding: 8px 12px;
+}
+
+/* Model Pill - compact selector inside input */
+.model-pill {
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.model-pill:hover {
+  border-color: var(--accent);
+  color: var(--text-main);
+}
+
+.model-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.model-pill optgroup {
+  background: var(--bg-sidebar);
+  color: var(--accent);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.model-pill option {
+  background: var(--bg-sidebar);
+  color: var(--text-main);
+  padding: 4px 8px;
+}
+
+.model-pill option:disabled {
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 .input-container textarea {
-  width: 100%;
+  flex: 1;
   background: transparent;
   border: none;
   color: var(--text-main);
-  padding: 12px 45px 12px 16px;
+  padding: 6px 0;
   font-size: 1rem;
   font-family: inherit;
   resize: none;
@@ -299,9 +347,6 @@ html,
 }
 
 .send-btn {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
   background: var(--accent);
   color: white;
   border: none;
@@ -314,6 +359,7 @@ html,
   justify-content: center;
   opacity: 0.5;
   transition: opacity 0.2s;
+  flex-shrink: 0;
 }
 
 .send-btn.ready {
@@ -392,8 +438,13 @@ html,
   accent-color: var(--accent);
 }
 
-.context-checkbox.no-context {
+.context-checkbox.disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.context-checkbox.disabled input {
+  cursor: not-allowed;
 }
 
 /* Turn Details Panel (Operator Mode) */
@@ -467,6 +518,34 @@ html,
 
 .detail-value.digest {
   color: var(--accent);
+  flex: 1;
+}
+
+.detail-value.digest.authoritative {
+  color: #10a37f;
+}
+
+.digest-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.digest-row .copy-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.digest-row .copy-btn:hover {
+  opacity: 1;
+  border-color: var(--accent);
+  background: rgba(88, 166, 255, 0.1);
 }
 
 .detail-value.status-observed_intent {
@@ -497,4 +576,41 @@ html,
 
 .message-wrapper:hover {
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* Semantic Connection Status Bar */
+.connection-bar {
+  text-align: center;
+  font-size: 0.85rem;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.connection-bar.ready {
+  display: none;
+}
+
+.connection-bar.connecting {
+  background: var(--bg-sidebar);
+  color: var(--text-muted);
+}
+
+.connection-bar.degraded {
+  background: rgba(240, 136, 62, 0.1);
+  color: #f0883e;
+}
+
+.connection-bar.unavailable {
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+}
+
+.connection-bar.error {
+  background: rgba(248, 81, 73, 0.15);
+  color: #f85149;
+}
+
+.connection-bar.disconnected {
+  background: var(--bg-sidebar);
+  color: var(--text-muted);
 }

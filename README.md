@@ -1,4 +1,4 @@
-# dbl-chat-client (v0.2.0)
+# dbl-chat-client (v0.4.0)
 
 Pure client library and UI for interacting with the [deterministic-ai-gateway](https://github.com/lukaspfisterch/deterministic-ai-gateway) chat surface.
 

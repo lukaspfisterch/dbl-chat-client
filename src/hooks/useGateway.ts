@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { GatewayClient } from '../api/gateway';
 import type { AdmissionError } from '../api/gateway';
-import type { EventRecord, ChatMessage, Capabilities, IntentEnvelope, IntentEvent, ExecutionEvent, DecisionEvent, ConnectionState, DeclaredRef } from '../types/gateway';
+import type { EventRecord, ChatMessage, Capabilities, IntentEnvelope, IntentEvent, ExecutionEvent, DecisionEvent, ConnectionState, SemanticConnectionState, DeclaredRef } from '../types/gateway';
 import { v4 as uuidv4 } from 'uuid';
+
 
 export function useGateway(baseUrl: string) {
     const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
@@ -37,6 +38,26 @@ export function useGateway(baseUrl: string) {
     // Admission Gate state
     const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
     const [admissionError, setAdmissionError] = useState<AdmissionError | null>(null);
+
+    // Semantic connection state (derived for UI)
+    const semanticState = useMemo((): SemanticConnectionState => {
+        if (connectionState === 'disconnected') return 'disconnected';
+        if (connectionState === 'connecting' || connectionState === 'checking_capabilities') return 'connecting';
+        if (connectionState === 'error') return 'error';
+        if (connectionState !== 'connected') return 'disconnected';
+
+        // Connected - now evaluate capabilities
+        if (!capabilities?.providers?.length) return 'unavailable';
+
+        const allModels = capabilities.providers.flatMap(p => p.models);
+        const healthyModels = allModels.filter(m => m.health?.status === 'ok');
+
+        if (healthyModels.length === 0) return 'unavailable';
+
+        const allHealthy = allModels.every(m => !m.health || m.health.status === 'ok');
+        return allHealthy ? 'ready' : 'degraded';
+    }, [connectionState, capabilities]);
+
 
     // Admission Gate: Check capabilities and compatibility on mount
     useEffect(() => {
@@ -306,10 +327,6 @@ export function useGateway(baseUrl: string) {
             }
         };
 
-        console.log('[DEBUG] Submitting INTENT');
-        console.log('[DEBUG] selectedModelId:', selectedModelId);
-        console.log('[DEBUG] context_mode:', options?.contextMode || 'none');
-
 
         try {
             await clientRef.current.postIntent(envelope);
@@ -339,6 +356,7 @@ export function useGateway(baseUrl: string) {
     return {
         // Connection state (Admission Gate)
         connectionState,
+        semanticState,
         admissionError,
         // Capabilities
         capabilities,
