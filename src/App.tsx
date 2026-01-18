@@ -1,17 +1,59 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGateway } from './hooks/useGateway';
 import { Sidebar } from './components/Sidebar';
 import { MessageInput } from './components/MessageInput';
-import type { ChatMessage } from './types/gateway';
+import type { ChatMessage, DeclaredRef } from './types/gateway';
 
 const GATEWAY_URL = '';
 
-const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
+// Turn Details Panel (Operator Mode)
+const TurnDetails: React.FC<{ message: ChatMessage; onClose: () => void }> = ({ message, onClose }) => (
+  <div className="turn-details-panel">
+    <div className="turn-details-header">
+      <span>Turn Details</span>
+      <button onClick={onClose} className="close-btn">×</button>
+    </div>
+    <div className="turn-details-content">
+      <div className="detail-row">
+        <span className="detail-label">turn_id</span>
+        <code className="detail-value">{message.turn_id}</code>
+      </div>
+      <div className="detail-row">
+        <span className="detail-label">correlation_id</span>
+        <code className="detail-value">{message.correlation_id}</code>
+      </div>
+      <div className="detail-row">
+        <span className="detail-label">status</span>
+        <code className={`detail-value status-${message.status}`}>{message.status}</code>
+      </div>
+      {message.context_digest && (
+        <div className="detail-row">
+          <span className="detail-label">context_digest</span>
+          <code className="detail-value digest">{message.context_digest.substring(0, 24)}...</code>
+        </div>
+      )}
+      {message.decision_digest && (
+        <div className="detail-row">
+          <span className="detail-label">decision_digest</span>
+          <code className="detail-value digest">{message.decision_digest.substring(0, 24)}...</code>
+        </div>
+      )}
+      {message.reason_codes && message.reason_codes.length > 0 && (
+        <div className="detail-row">
+          <span className="detail-label">reason_codes</span>
+          <code className="detail-value">{message.reason_codes.join(', ')}</code>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+const MessageBubble: React.FC<{ message: ChatMessage; onShowDetails: () => void }> = ({ message, onShowDetails }) => {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
   return (
-    <div className={`message-wrapper ${message.role}`}>
+    <div className={`message-wrapper ${message.role}`} onClick={onShowDetails}>
       <div className="message-content">
         <div className={`avatar ${message.role}`}>
           {isUser ? 'U' : isSystem ? 'S' : 'AI'}
@@ -37,10 +79,14 @@ function App() {
     renameThread,
     projectionError,
     selectedModelId,
-    setSelectedModelId
+    setSelectedModelId,
+    connectionState,
+    admissionError
   } = useGateway(GATEWAY_URL);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [includeContext, setIncludeContext] = useState(false);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -53,8 +99,24 @@ function App() {
     if (!threadId) {
       threadId = createNewThread();
     }
-    sendMessage(threadId, text).catch(console.error);
+
+    // Build declared_refs if context checkbox is checked
+    let contextRefs: DeclaredRef[] | undefined;
+    if (includeContext && messages.length > 0) {
+      const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+      if (lastUserMessage) {
+        contextRefs = [{
+          ref_type: 'turn',
+          ref_id: lastUserMessage.turn_id,
+        }];
+      }
+    }
+
+    sendMessage(threadId, text, contextRefs).catch(console.error);
   };
+
+  const selectedMessage = messages.find(m => m.id === selectedMessageId);
+  const isConnected = connectionState === 'connected';
 
   return (
     <div className="app-container">
@@ -68,6 +130,16 @@ function App() {
       />
 
       <main className="main-view">
+        {/* Connection Status Bar */}
+        {connectionState !== 'connected' && (
+          <div className={`connection-bar ${connectionState}`}>
+            {connectionState === 'connecting' && '🔄 Connecting to gateway...'}
+            {connectionState === 'checking_capabilities' && '🔍 Checking capabilities...'}
+            {connectionState === 'error' && `❌ ${admissionError?.message || 'Connection failed'}`}
+            {connectionState === 'disconnected' && '⚪ Disconnected'}
+          </div>
+        )}
+
         <div className="messages-container" ref={scrollRef}>
           {messages.length === 0 && !activeThreadId && (
             <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyItems: 'center', height: '100%', color: 'var(--text-muted)', textAlign: 'center', padding: '0 40px' }}>
@@ -78,23 +150,43 @@ function App() {
             </div>
           )}
           {messages.map(msg => (
-            <MessageBubble key={msg.id} message={msg} />
+            <MessageBubble
+              key={msg.id}
+              message={msg}
+              onShowDetails={() => setSelectedMessageId(selectedMessageId === msg.id ? null : msg.id)}
+            />
           ))}
         </div>
 
-        <MessageInput
-          onSend={handleSend}
-          disabled={!capabilities}
-          capabilities={capabilities}
-          selectedModelId={selectedModelId}
-          onModelSelect={setSelectedModelId}
-        />
-
-        {!capabilities && (
-          <div className="status-bar">
-            Connecting to gateway (port 8010 via proxy)...
-          </div>
+        {/* Turn Details Panel (Operator Mode) */}
+        {selectedMessage && (
+          <TurnDetails
+            message={selectedMessage}
+            onClose={() => setSelectedMessageId(null)}
+          />
         )}
+
+        {/* Context and Input */}
+        <div className="input-area">
+          <div className="context-options">
+            <label className="context-checkbox">
+              <input
+                type="checkbox"
+                checked={includeContext}
+                onChange={(e) => setIncludeContext(e.target.checked)}
+                disabled={!isConnected || messages.length === 0}
+              />
+              <span>Include previous turn as context</span>
+            </label>
+          </div>
+          <MessageInput
+            onSend={handleSend}
+            disabled={!isConnected}
+            capabilities={capabilities}
+            selectedModelId={selectedModelId}
+            onModelSelect={setSelectedModelId}
+          />
+        </div>
 
         {projectionError && (
           <div className="status-bar error">
@@ -107,3 +199,4 @@ function App() {
 }
 
 export default App;
+

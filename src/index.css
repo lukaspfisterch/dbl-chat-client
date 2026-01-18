@@ -331,3 +331,156 @@ html,
   color: #f85149;
   background: rgba(248, 81, 73, 0.1);
 }
+
+/* Connection Status Bar */
+.connection-bar {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  text-align: center;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.connection-bar.connecting,
+.connection-bar.checking_capabilities {
+  color: var(--accent);
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.connection-bar.error {
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.connection-bar.disconnected {
+  color: var(--text-muted);
+}
+
+/* Context Options */
+.input-area {
+  flex-direction: column;
+  padding: 0 24px 24px;
+  gap: 8px;
+}
+
+.context-options {
+  display: flex;
+  justify-content: center;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.context-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.context-checkbox:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.context-checkbox input {
+  accent-color: var(--accent);
+}
+
+.context-checkbox input:disabled + span {
+  opacity: 0.5;
+}
+
+/* Turn Details Panel (Operator Mode) */
+.turn-details-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 120px;
+  width: 320px;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.turn-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: var(--text-main);
+}
+
+.turn-details-content {
+  padding: 8px 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.detail-row {
+  display: flex;
+  padding: 6px 12px;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.detail-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 0.75rem;
+  color: var(--text-main);
+  font-family: 'Monaco', 'Consolas', monospace;
+  word-break: break-all;
+}
+
+.detail-value.digest {
+  color: var(--accent);
+}
+
+.detail-value.status-observed_intent { color: var(--accent); }
+.detail-value.status-observed_execution { color: #10a37f; }
+.detail-value.status-observed_deny { color: #f85149; }
+.detail-value.status-execution_error { color: #f0883e; }
+.detail-value.status-transport_error { color: #f0883e; }
+
+/* Message clickable */
+.message-wrapper {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.message-wrapper:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
