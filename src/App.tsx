@@ -101,14 +101,19 @@ function App() {
     }
 
     // Build declared_refs if context checkbox is checked
+    // We need to reference the LAST COMPLETED turn (one with an assistant response)
+    // Not the current turn we're about to send
     let contextRefs: DeclaredRef[] | undefined;
     if (includeContext && messages.length > 0) {
-      const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
-      if (lastUserMessage) {
+      // Find the last assistant message - that represents a completed turn with EXECUTION
+      const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
+      if (lastAssistantMessage) {
+        // Use correlation_id for stable reference resolution
         contextRefs = [{
-          ref_type: 'turn',
-          ref_id: lastUserMessage.turn_id,
+          ref_type: 'event',
+          ref_id: lastAssistantMessage.correlation_id,
         }];
+        console.log('[DEBUG] Context ref:', lastAssistantMessage.correlation_id, 'from turn:', lastAssistantMessage.turn_id);
       }
     }
 
