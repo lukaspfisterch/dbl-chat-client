@@ -169,14 +169,16 @@ function App() {
         {/* Context and Input */}
         <div className="input-area">
           <div className="context-options">
-            <label className="context-checkbox">
+            <label className={`context-checkbox ${messages.length === 0 ? 'no-context' : ''}`}>
               <input
                 type="checkbox"
                 checked={includeContext}
                 onChange={(e) => setIncludeContext(e.target.checked)}
-                disabled={!isConnected || messages.length === 0}
               />
-              <span>Include previous turn as context</span>
+              <span>
+                Include previous turn as context
+                {messages.length === 0 && ' (no turns yet)'}
+              </span>
             </label>
           </div>
           <MessageInput

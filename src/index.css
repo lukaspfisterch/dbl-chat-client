@@ -392,7 +392,7 @@ html,
   accent-color: var(--accent);
 }
 
-.context-checkbox input:disabled + span {
+.context-checkbox.no-context {
   opacity: 0.5;
 }
 
@@ -469,11 +469,25 @@ html,
   color: var(--accent);
 }
 
-.detail-value.status-observed_intent { color: var(--accent); }
-.detail-value.status-observed_execution { color: #10a37f; }
-.detail-value.status-observed_deny { color: #f85149; }
-.detail-value.status-execution_error { color: #f0883e; }
-.detail-value.status-transport_error { color: #f0883e; }
+.detail-value.status-observed_intent {
+  color: var(--accent);
+}
+
+.detail-value.status-observed_execution {
+  color: #10a37f;
+}
+
+.detail-value.status-observed_deny {
+  color: #f85149;
+}
+
+.detail-value.status-execution_error {
+  color: #f0883e;
+}
+
+.detail-value.status-transport_error {
+  color: #f0883e;
+}
 
 /* Message clickable */
 .message-wrapper {
